@@ -11,10 +11,6 @@ let package = Package(
         .library(
             name: "ImPAWsibleMetalFilters",
             targets: ["ImPAWsibleMetalFilters"]
-        ),
-        .library(
-            name: "ImPAWsibleMetalFiltersUI",
-            targets: ["ImPAWsibleMetalFiltersUI"]
         )
     ],
     dependencies: [
@@ -25,11 +21,6 @@ let package = Package(
             name: "ImPAWsibleMetalFilters",
             dependencies: [],
             path: "Sources/ImPAWsibleMetalFilters"
-        ),
-        .target(
-            name: "ImPAWsibleMetalFiltersUI",
-            dependencies: ["ImPAWsibleMetalFilters"],
-            path: "Sources/ImPAWsibleMetalFiltersUI"
         ),
         .testTarget(
             name: "ImPAWsibleMetalFiltersTests",
