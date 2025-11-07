@@ -1,40 +1,49 @@
 // swift-tools-version: 5.9
+// The swift-tools-version declares the minimum version of Swift required to build this package.
+
 import PackageDescription
 
 let package = Package(
     name: "ImPAWsibleMetalFilters",
     platforms: [
-        .iOS(.v17),  // 与 DuoMira 保持一致
+        .iOS(.v16),
         .macOS(.v13)
     ],
     products: [
+        // Core Metal filter processing library
         .library(
             name: "ImPAWsibleMetalFilters",
             targets: ["ImPAWsibleMetalFilters"]
         ),
+        // SwiftUI components (optional)
         .library(
             name: "ImPAWsibleMetalFiltersUI",
             targets: ["ImPAWsibleMetalFiltersUI"]
-        )
+        ),
     ],
     dependencies: [
-        // 无外部依赖 - 仅使用系统框架
+        // No external dependencies - pure Swift & Metal
     ],
     targets: [
+        // Core Metal filter processing target
         .target(
             name: "ImPAWsibleMetalFilters",
             dependencies: [],
-            path: "Sources/ImPAWsibleMetalFilters"
+            resources: [
+                .process("Shaders")
+            ]
         ),
+
+        // SwiftUI UI components target
         .target(
             name: "ImPAWsibleMetalFiltersUI",
-            dependencies: ["ImPAWsibleMetalFilters"],
-            path: "Sources/ImPAWsibleMetalFiltersUI"
+            dependencies: ["ImPAWsibleMetalFilters"]
         ),
+
+        // Tests
         .testTarget(
             name: "ImPAWsibleMetalFiltersTests",
-            dependencies: ["ImPAWsibleMetalFilters"],
-            path: "Tests/ImPAWsibleMetalFiltersTests"
-        )
+            dependencies: ["ImPAWsibleMetalFilters"]
+        ),
     ]
 )

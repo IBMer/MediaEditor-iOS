@@ -1,65 +1,24 @@
 import Foundation
 
-/// Represents all available Metal-accelerated photo filters
+/// 滤镜枚举（与 ImPAWsibleCoreImage 保持一致）
 ///
-/// Each filter corresponds to a GPU compute shader that processes video frames in real-time.
-/// Designed for high-performance video processing (target: < 5ms @ 1920x1080).
-///
-/// Example usage:
-/// ```swift
-/// let pipeline = try MetalFilterPipeline()
-/// let filtered = try pipeline.process(pixelBuffer: frame, filter: .mono)
-/// ```
-@available(iOS 16.0, macOS 13.0, *)
+/// 使用 Metal-backed Core Image 实现，确保效果与静态图片滤镜完全一致。
+@available(iOS 17.0, macOS 13.0, *)
 public enum MetalFilter: String, CaseIterable, Identifiable, Sendable {
-    /// No filter applied - returns the original frame
-    case none
+    case none       // 无滤镜
+    case mono       // 黑白（单色）
+    case noir       // 黑白胶片
+    case sepia      // 褐色
+    case vintage    // 怀旧
+    case tonal      // 色调
+    case transfer   // 色彩转移
+    case chrome     // 金属质感
+    case fade       // 褪色
+    case instant    // 即时相机
 
-    /// Black and white filter with adjustable contrast
-    /// - GPU Kernel: `monoFilter`
-    /// - Custom Parameters: contrast (0.8-1.5, default: 1.1)
-    case mono
-
-    /// Dramatic black and white film effect with enhanced contrast
-    /// - GPU Kernel: `noirFilter`
-    case noir
-
-    /// Warm sepia tone with adjustable warmth
-    /// - GPU Kernel: `sepiaFilter`
-    /// - Custom Parameters: warmth (0.0-1.0, default: 0.7)
-    case sepia
-
-    /// Vintage photo processing effect with desaturated warm tones
-    /// - GPU Kernel: `vintageFilter`
-    case vintage
-
-    /// Soft tonal color effect with midtone lift
-    /// - GPU Kernel: `tonalFilter`
-    case tonal
-
-    /// Color transfer effect with enhanced greens and cyans
-    /// - GPU Kernel: `transferFilter`
-    case transfer
-
-    /// Metallic chrome effect with high contrast desaturation
-    /// - GPU Kernel: `chromeFilter`
-    case chrome
-
-    /// Faded photograph look with adjustable brightness
-    /// - GPU Kernel: `fadeFilter`
-    /// - Custom Parameters: brightness (0.8-1.3, default: 1.1)
-    case fade
-
-    /// Instant camera photograph style with vignette
-    /// - GPU Kernel: `instantFilter`
-    case instant
-
-    // MARK: - Public Properties
-
-    /// Unique identifier for Identifiable conformance
     public var id: String { rawValue }
 
-    /// User-friendly display name (localization-ready)
+    /// 用户显示名称（支持本地化）
     public var displayName: String {
         switch self {
         case .none: return NSLocalizedString("Original", comment: "Filter name")
@@ -75,73 +34,44 @@ public enum MetalFilter: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// The Metal compute kernel function name
-    public var kernelFunctionName: String {
+    /// Core Image 滤镜名称（Apple 内置滤镜）
+    public var ciFilterName: String? {
         switch self {
-        case .none: return ""  // No processing needed
-        case .mono: return "monoFilter"
-        case .noir: return "noirFilter"
-        case .sepia: return "sepiaFilter"
-        case .vintage: return "vintageFilter"
-        case .tonal: return "tonalFilter"
-        case .transfer: return "transferFilter"
-        case .chrome: return "chromeFilter"
-        case .fade: return "fadeFilter"
-        case .instant: return "instantFilter"
+        case .none: return nil
+        case .mono: return "CIPhotoEffectMono"
+        case .noir: return "CIPhotoEffectNoir"
+        case .sepia: return "CISepiaTone"
+        case .vintage: return "CIPhotoEffectProcess"
+        case .tonal: return "CIPhotoEffectTonal"
+        case .transfer: return "CIPhotoEffectTransfer"
+        case .chrome: return "CIPhotoEffectChrome"
+        case .fade: return "CIPhotoEffectFade"
+        case .instant: return "CIPhotoEffectInstant"
         }
     }
 
-    /// Whether this filter supports custom parameter tuning
-    public var supportsCustomParameters: Bool {
+    /// 是否支持强度调节
+    /// - Note: 只有 CISepiaTone 原生支持 intensity 参数
+    public var supportsIntensity: Bool {
         switch self {
-        case .sepia, .mono, .fade:
-            return true
-        default:
-            return false
+        case .sepia: return true  // CISepiaTone 支持 intensity
+        default: return false     // 其他 CIPhotoEffect* 不支持
         }
     }
 
-    /// Default parameter preset for this filter
-    public var defaultParameters: FilterParameters {
-        FilterParameters.preset(for: self)
-    }
-
-    /// Brief description of the filter's visual effect
+    /// 滤镜描述
     public var description: String {
         switch self {
-        case .none:
-            return NSLocalizedString("No filter applied", comment: "Filter description")
-        case .mono:
-            return NSLocalizedString("Black and white with high contrast", comment: "Filter description")
-        case .noir:
-            return NSLocalizedString("Dramatic black and white film effect", comment: "Filter description")
-        case .sepia:
-            return NSLocalizedString("Warm brown tone reminiscent of old photographs", comment: "Filter description")
-        case .vintage:
-            return NSLocalizedString("Classic vintage film processing look", comment: "Filter description")
-        case .tonal:
-            return NSLocalizedString("Soft tonal color effect with lifted midtones", comment: "Filter description")
-        case .transfer:
-            return NSLocalizedString("Enhanced green and cyan color transfer", comment: "Filter description")
-        case .chrome:
-            return NSLocalizedString("Metallic chrome effect with high contrast", comment: "Filter description")
-        case .fade:
-            return NSLocalizedString("Faded vintage photograph look", comment: "Filter description")
-        case .instant:
-            return NSLocalizedString("Instant camera photograph style with vignette", comment: "Filter description")
-        }
-    }
-
-    /// Typical GPU processing time estimate at 1920x1080
-    /// - Note: Actual performance varies by device
-    public var estimatedProcessingTime: String {
-        switch self {
-        case .none:
-            return "~0ms (passthrough)"
-        case .instant:
-            return "~4-6ms (with vignette calculation)"
-        default:
-            return "~2-4ms"
+        case .none: return NSLocalizedString("No filter applied", comment: "Filter description")
+        case .mono: return NSLocalizedString("Black and white with high contrast", comment: "Filter description")
+        case .noir: return NSLocalizedString("Dramatic black and white film effect", comment: "Filter description")
+        case .sepia: return NSLocalizedString("Warm brown tone", comment: "Filter description")
+        case .vintage: return NSLocalizedString("Classic film processing", comment: "Filter description")
+        case .tonal: return NSLocalizedString("Soft tonal color effect", comment: "Filter description")
+        case .transfer: return NSLocalizedString("Color transfer effect", comment: "Filter description")
+        case .chrome: return NSLocalizedString("Metallic chrome effect", comment: "Filter description")
+        case .fade: return NSLocalizedString("Faded vintage photograph", comment: "Filter description")
+        case .instant: return NSLocalizedString("Instant camera style", comment: "Filter description")
         }
     }
 }
